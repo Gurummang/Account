@@ -7,5 +7,6 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 public class AuthenticationResponse implements Serializable {
-    private final String jwt;
+    private final String email;
+    private final String status;
 }

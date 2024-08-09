@@ -1,24 +1,23 @@
 package com.GASB.account.controller;
 
 
+import com.GASB.account.component.EmailValidator;
 import com.GASB.account.component.JwtUtil;
-import com.GASB.account.model.dto.AuthenticationRequest;
-import com.GASB.account.model.dto.AuthenticationResponse;
-import com.GASB.account.model.dto.UserRegistrationRequest;
+import com.GASB.account.component.PasswordValidator;
+import com.GASB.account.model.dto.*;
+import com.GASB.account.model.repository.AdminUserRepo;
 import com.GASB.account.service.AdminUserSevice;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,13 +28,29 @@ public class GrummangAuthController {
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
     private final AdminUserSevice adminUserService;
+    private final AdminUserRepo adminUserRepo;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationRequest request) {
-        System.out.println("request : " + request);
-        adminUserService.registerAdmin(request);
-        return ResponseEntity.ok("User registered successfully");
+    public ResponseEntity<RegisterResponse> registerUser(@RequestBody UserRegistrationRequest request) {
+        try {
+            String email = request.getEmail();
+            String pw = request.getPassword();
+
+            if (email == null || !EmailValidator.isValid(email) || pw == null || !PasswordValidator.isValid(pw)) {
+                return ResponseEntity.badRequest().body(new RegisterResponse("error", "Email and password must be provided and valid"));
+            }
+
+            if (adminUserRepo.existsByEmail(email)) {
+                return ResponseEntity.badRequest().body(new RegisterResponse("error", "User already exists"));
+            }
+
+            adminUserService.registerAdmin(request);
+            return ResponseEntity.ok(new RegisterResponse("success", "User registered successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new RegisterResponse("error", "An error occurred during registration"));
+        }
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest, HttpServletResponse response) throws Exception {
@@ -51,10 +66,31 @@ public class GrummangAuthController {
         // JWT를 HttpOnly 쿠키에 저장
         Cookie cookie = new Cookie("jwt", jwt);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true); // HTTPS를 사용할 때만
+//        cookie.setSecure(true); // HTTPS를 사용할 때만
         cookie.setPath("/");
         response.addCookie(cookie);
 
-        return ResponseEntity.ok(new AuthenticationResponse(jwt));
+        return ResponseEntity.ok(new LogInResponse(jwt));
+    }
+
+
+
+    @PostMapping("/validate")
+    public ResponseEntity<AuthenticationResponse> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
+        try{
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
+            }
+            String token = authorizationHeader.substring(7); // Remove "Bearer " prefix
+            if (jwtUtil.validateToken(token)) {
+                String email = jwtUtil.extractUserEmail(token);
+                return ResponseEntity.ok(new AuthenticationResponse(email, "OK"));
+            } else {
+                return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
+        }
     }
 }

@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface AdminUserRepo extends JpaRepository<AdminUsers, Long> {
     @Query("SELECT a FROM AdminUsers a WHERE a.email = :email")
     AdminUsers findByEmail(@Param("email") String email);
+
+    boolean existsByEmail(String email);
 }
