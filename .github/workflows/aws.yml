@@ -10,7 +10,7 @@ env:
   ECS_SERVICE: AccountService                 # set this to your Amazon ECS service name
   ECS_CLUSTER: GrummangCluster                 # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: ./.aws/AccountTaskDefinition.json # set this to the path to your Amazon ECS task definition
-  # file, e.g. .aws/task-definition.json
+  
   CONTAINER_NAME: AccountContainer          # set this to the name of the container in the
 
 permissions:
