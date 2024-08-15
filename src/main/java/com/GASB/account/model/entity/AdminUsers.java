@@ -37,4 +37,8 @@ public class AdminUsers {
     @Setter
     @Column(name = "last_login")
     private Timestamp lastLogin;
+
+    @Column(name = "salt", nullable = false)
+    private String salt;
+
 }

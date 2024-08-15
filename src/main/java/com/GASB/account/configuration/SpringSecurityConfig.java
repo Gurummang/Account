@@ -17,6 +17,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
@@ -46,8 +51,51 @@ public class SpringSecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new PasswordEncoder() {
+            private static final int HASH_ITERATIONS = 10000;
+
+            @Override
+            public String encode(CharSequence rawPassword) {
+                try {
+                    String saltedPasswordStr = rawPassword.toString();
+                    byte[] saltedPassword = saltedPasswordStr.getBytes();
+
+                    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                    byte[] hash = saltedPassword;
+
+                    for (int i = 0; i < HASH_ITERATIONS; i++) {
+                        hash = digest.digest(hash);
+                    }
+
+                    return Base64.getEncoder().encodeToString(hash);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException("SHA-256 algorithm not available", e);
+                }
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                byte[] saltedPassword = rawPassword.toString().getBytes();
+                byte[] decodedHash = Base64.getDecoder().decode(encodedPassword);
+
+                MessageDigest digest;
+                try {
+                    digest = MessageDigest.getInstance("SHA-256");
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException("SHA-256 algorithm not available", e);
+                }
+
+                byte[] calculatedHash = saltedPassword;
+                for (int i = 0; i < HASH_ITERATIONS; i++) {
+                    calculatedHash = digest.digest(calculatedHash);
+                }
+
+                return MessageDigest.isEqual(calculatedHash, decodedHash);
+            }
+        };
     }
+
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {

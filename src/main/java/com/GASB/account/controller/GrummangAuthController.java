@@ -5,6 +5,7 @@ import com.GASB.account.component.EmailValidator;
 import com.GASB.account.component.JwtUtil;
 import com.GASB.account.component.PasswordValidator;
 import com.GASB.account.model.dto.*;
+import com.GASB.account.model.entity.AdminUsers;
 import com.GASB.account.model.repository.AdminUserRepo;
 import com.GASB.account.service.AdminUserSevice;
 import jakarta.servlet.http.Cookie;
@@ -18,6 +19,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -55,22 +59,37 @@ public class GrummangAuthController {
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest, HttpServletResponse response) throws Exception {
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authenticationRequest.getEmail(), authenticationRequest.getPassword()));
+            // DB에서 사용자 정보 및 솔트 가져오기
+            AdminUsers adminUser = adminUserRepo.findByEmail(authenticationRequest.getEmail());
+
+            if (adminUser == null) {
+                throw new BadCredentialsException("Incorrect username or password");
+            }
+
+            // 입력된 비밀번호와 솔트를 결합하여 인증 시도
+            String saltedPassword = adminUser.getSalt() + authenticationRequest.getPassword();
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authenticationRequest.getEmail(), saltedPassword));
+
         } catch (BadCredentialsException e) {
             throw new Exception("Incorrect username or password", e);
+        } catch (Exception e) {
+            throw new Exception("An error occurred during authentication", e);
         }
 
+        // 사용자 인증 성공 후 JWT 생성
         final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getEmail());
         final String jwt = jwtUtil.generateToken(userDetails.getUsername());
-
+        Map<String, String> responseMap = new HashMap<>();
         // JWT를 HttpOnly 쿠키에 저장
         Cookie cookie = new Cookie("jwt", jwt);
         cookie.setHttpOnly(true);
-//        cookie.setSecure(true); // HTTPS를 사용할 때만
+        cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
         cookie.setPath("/");
         response.addCookie(cookie);
-
-        return ResponseEntity.ok(new LogInResponse(jwt));
+        adminUserRepo.setLastLoginTimeByEmail(authenticationRequest.getEmail());
+        responseMap.put("status", "success");
+        responseMap.put("jwt", jwt);
+        return ResponseEntity.ok(responseMap);
     }
 
 
