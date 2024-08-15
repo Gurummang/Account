@@ -35,7 +35,6 @@ public class SpringSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors()
                 .csrf(AbstractHttpConfigurer::disable) // CSRF 보호 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/validate").permitAll()
