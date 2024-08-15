@@ -83,7 +83,7 @@ public class GrummangAuthController {
         // JWT를 HttpOnly 쿠키에 저장
         Cookie cookie = new Cookie("jwt", jwt);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
+//        cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
         cookie.setPath("/");
         response.addCookie(cookie);
         adminUserRepo.setLastLoginTimeByEmail(authenticationRequest.getEmail());
