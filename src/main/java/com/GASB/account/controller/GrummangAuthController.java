@@ -58,7 +58,7 @@ public class GrummangAuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest, HttpServletResponse response) throws Exception {
-        Map<String,String> responseMap = new HashMap<>();
+        Map<String, String> responseMap = new HashMap<>();
         try {
             // DB에서 사용자 정보 및 솔트 가져오기
             AdminUsers adminUser = adminUserRepo.findByEmail(authenticationRequest.getEmail());
@@ -83,18 +83,31 @@ public class GrummangAuthController {
         // 사용자 인증 성공 후 JWT 생성
         final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getEmail());
         final String jwt = jwtUtil.generateToken(userDetails.getUsername());
+
         // JWT를 HttpOnly 쿠키에 저장
         Cookie cookie = new Cookie("jwt", jwt);
         cookie.setHttpOnly(true);
-//        cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
+        // cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
         cookie.setPath("/");
 
-        response.addCookie(cookie);
+        // SameSite 속성을 수동으로 추가
+        String cookieHeader = String.format("%s=%s; Path=%s; HttpOnly; SameSite=Strict",
+                cookie.getName(),
+                cookie.getValue(),
+                cookie.getPath());
+
+        // HTTPS에서만 사용할 경우 secure 속성 추가
+        // cookieHeader += "; Secure";
+
+        response.addHeader("Set-Cookie", cookieHeader);
         adminUserRepo.setLastLoginTimeByEmail(authenticationRequest.getEmail());
+
         responseMap.put("status", "success");
         responseMap.put("jwt", jwt);
+
         return ResponseEntity.ok(responseMap);
     }
+
 
 
 
@@ -116,4 +129,29 @@ public class GrummangAuthController {
             return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
         }
     }
+
+    @GetMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("jwt", "");
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/client/validation")
+    public ResponseEntity<AuthenticationResponse> validateClientTokenWithCookie(@CookieValue(value = "jwt", required = false) String jwt) {
+        try {
+            if (jwt == null || jwt.isEmpty() || !jwtUtil.validateToken(jwt)) {
+                return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
+            }
+
+            String email = jwtUtil.extractUserEmail(jwt);
+            return ResponseEntity.ok(new AuthenticationResponse(email, "OK"));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
+        }
+    }
+
 }
