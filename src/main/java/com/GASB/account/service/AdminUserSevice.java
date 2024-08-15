@@ -5,6 +5,7 @@ import com.GASB.account.model.entity.AdminUsers;
 import com.GASB.account.model.repository.AdminUserRepo;
 import com.GASB.account.model.repository.OrgRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,8 @@ public class AdminUserSevice {
     private final OrgRepo orgRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${grummang.org.id}")
+    private Long orgId;
 
     private static final int SALT_LENGTH = 16;
 
@@ -37,7 +40,7 @@ public class AdminUserSevice {
 
         // AdminUsers 엔티티에 솔트와 해시된 비밀번호를 저장
         AdminUsers adminUsers = AdminUsers.builder()
-                .org(orgRepository.findById(request.getOrgId()).orElse(null))
+                .org(orgRepository.findById(orgId).orElse(null))
                 .email(request.getEmail())
                 .password(hashedPassword)
                 .salt(salt) // 솔트를 저장
