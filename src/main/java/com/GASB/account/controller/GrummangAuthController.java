@@ -127,18 +127,4 @@ public class GrummangAuthController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/client/validation")
-    public ResponseEntity<AuthenticationResponse> validateClientTokenWithCookie(@CookieValue(value = "jwt", required = false) String jwt) {
-        try {
-            if (jwt == null || jwt.isEmpty() || !jwtUtil.validateToken(jwt)) {
-                return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
-            }
-
-            String email = jwtUtil.extractUserEmail(jwt);
-            return ResponseEntity.ok(new AuthenticationResponse(email, "OK"));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
-        }
-    }
-
 }
