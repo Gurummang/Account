@@ -86,10 +86,13 @@ public class GrummangAuthController {
         // JWT를 HttpOnly 쿠키에 저장
         Cookie cookie = new Cookie("jwt", jwt);
         cookie.setHttpOnly(true);
-//        cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
+        cookie.setAttribute("SameSite", "None");
+        cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
         cookie.setPath("/");
 
+
         response.addCookie(cookie);
+
         adminUserRepo.setLastLoginTimeByEmail(authenticationRequest.getEmail());
         responseMap.put("status", "success");
         responseMap.put("jwt", jwt);
@@ -126,19 +129,4 @@ public class GrummangAuthController {
         response.addCookie(cookie);
         return ResponseEntity.ok().build();
     }
-
-    @GetMapping("/client/validation")
-    public ResponseEntity<AuthenticationResponse> validateClientTokenWithCookie(@CookieValue(value = "jwt", required = false) String jwt) {
-        try {
-            if (jwt == null || jwt.isEmpty() || !jwtUtil.validateToken(jwt)) {
-                return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
-            }
-
-            String email = jwtUtil.extractUserEmail(jwt);
-            return ResponseEntity.ok(new AuthenticationResponse(email, "OK"));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
-        }
-    }
-
 }
