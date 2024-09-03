@@ -89,7 +89,7 @@ public class GrummangAuthController {
         cookie.setAttribute("SameSite", "None");
         cookie.setSecure(true); // HTTPS를 사용할 때만 활성화
         cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 12 ); // 10시간
+        cookie.setMaxAge(60 * 60 ); // 10시간
 
 
         response.addCookie(cookie);
