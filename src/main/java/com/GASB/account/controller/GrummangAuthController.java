@@ -127,6 +127,7 @@ public class GrummangAuthController {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setSecure(true);
         response.addCookie(cookie);
         return ResponseEntity.ok().build();
     }
