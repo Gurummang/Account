@@ -50,7 +50,7 @@ public class GrummangAuthController {
 
             adminUserService.registerAdmin(request);
             return ResponseEntity.ok(new RegisterResponse("success", "User registered successfully"));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new RegisterResponse("error", "An error occurred during registration"));
         }
     }
@@ -116,7 +116,7 @@ public class GrummangAuthController {
                 return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
             }
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(new AuthenticationResponse(null, "Invalid token"));
         }
     }
@@ -127,6 +127,7 @@ public class GrummangAuthController {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setSecure(true);
         response.addCookie(cookie);
         return ResponseEntity.ok().build();
     }
