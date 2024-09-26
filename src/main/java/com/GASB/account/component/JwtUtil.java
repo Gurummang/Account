@@ -1,10 +1,9 @@
 package com.GASB.account.component;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -16,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -81,8 +81,21 @@ public class JwtUtil {
         try {
             Jwts.parser().setSigningKey(key).build().parseClaimsJws(token);
             return true;
-        } catch (Exception e) {
+        } catch (ExpiredJwtException e) {
+            log.warn("Token has expired: " + e.getMessage());
+            return false;
+        } catch (UnsupportedJwtException e) {
+            log.warn("Unsupported JWT token: " + e.getMessage());
+            return false;
+        } catch (MalformedJwtException e) {
+            log.warn("Invalid JWT token: " + e.getMessage());
+            return false;
+        } catch (IllegalArgumentException e) {
+            log.warn("JWT token compact of handler are invalid: " + e.getMessage());
+            return false;
+        } catch (Exception e){
             return false;
         }
     }
+
 }
